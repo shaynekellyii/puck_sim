@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package puck;
+
+message CreateTeamRequest {
+    string location = 1;
+    string nickname = 2;
+    string abbreviation = 3;
+}
+
+message CreateTeamResponse {
+    Team team = 1;
+}
+
+message Team {
+    string id = 1;
+    string location = 2;
+    string nickname = 3;
+    string abbreviation = 4;
+}
+
+message ErrorDetail {
+    string description = 1;
+}
+
+service Puck {
+    rpc CreateTeam(CreateTeamRequest) returns (CreateTeamResponse);
+}
