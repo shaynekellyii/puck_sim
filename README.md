@@ -5,6 +5,6 @@
 ### Regenerating Dart protobuf client
 
 ```zsh
-cd /path/to/puck_sim
-protoc --dart_out=grpc:puck_client/lib/src/generated -Iprotos protobuf/api.proto
+cd /path/to/puck_sim/puck_client
+protoc --dart_out=grpc:lib/src/generated -I=../protobuf/ ../protobuf/api.proto
 ```

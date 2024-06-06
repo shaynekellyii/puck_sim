@@ -1,3 +1,5 @@
+use std::net::{IpAddr, SocketAddr};
+
 use puck::{
     puck_server::{Puck, PuckServer},
     CreateTeamRequest, CreateTeamResponse, Team,
@@ -31,7 +33,9 @@ impl Puck for PuckService {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let address = "[::1]:8080".parse().unwrap();
+    let address = SocketAddr::new(IpAddr::from([0, 0, 0, 0]), 50051);
+    println!("Listening on: {}", address);
+
     let puck_service = PuckService::default();
 
     Server::builder()
