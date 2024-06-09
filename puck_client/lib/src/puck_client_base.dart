@@ -1,10 +1,9 @@
-import 'package:fpdart/fpdart.dart';
 import 'package:grpc/grpc.dart';
 import 'package:puck_client/src/generated/api.pbgrpc.dart';
 
 class PuckSdk {
   PuckSdk({
-    String address = '127.0.0.1',
+    String address = '0.0.0.0',
     int port = 50051,
     bool isTlsEnabled = false,
   }) {
@@ -32,8 +31,6 @@ class PuckSdk {
   ///
   /// Creates a new team and returns the created team if successful.
   ///
-  TaskEither<Object, CreateTeamResponse> createTeam({
-    required CreateTeamRequest request,
-  }) =>
-      TaskEither.tryCatch(() => _client.createTeam(request), (e, __) => e);
+  Future<CreateTeamResponse> createTeam({required CreateTeamRequest request}) =>
+      _client.createTeam(request);
 }

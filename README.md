@@ -22,3 +22,11 @@ docker-compose up
 cd /path/to/puck_sim/puck_client
 protoc --dart_out=grpc:lib/src/generated -I=../protobuf/ ../protobuf/api.proto
 ```
+
+## Flutter app
+
+### Regenerating `freezed` models
+
+```zsh
+dart run build_runner build --delete-conflicting-outputs
+```
