@@ -33,6 +33,8 @@ impl Puck for PuckService {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let pool = PgPool
+    
     let address = SocketAddr::new(IpAddr::from([0, 0, 0, 0]), 50051);
     println!("Listening on: {}", address);
 
