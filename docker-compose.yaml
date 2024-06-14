@@ -14,12 +14,14 @@ services:
     restart: always
     user: postgres
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - puck-db-data:/var/lib/postgresql/data
       - ./postgres_db_init.sql:/docker-entrypoint-initdb.d/postgres_db_init.sql
     env_file:
       - .env
     environment:
       - POSTGRES_DB=puck
+    ports:
+      - 5432:5432
     expose:
       - 5432
     healthcheck:
@@ -28,6 +30,6 @@ services:
       timeout: 5s
       retries: 5
 volumes:
-  db-data:
+  puck-db-data:
 
 
