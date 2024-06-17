@@ -1,26 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:formz/formz.dart';
-import 'package:get_it/get_it.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:mobx/mobx.dart';
 import 'package:puck_app/features/features.dart';
-import 'package:puck_app/services/services.dart';
+import 'package:puck_app/models/models.dart';
+import 'package:puck_app/models/view_state.dart';
 
 class CreateTeamScreen extends StatelessWidget {
   const CreateTeamScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CreateTeamBloc(
-        puckRepository: GetIt.I.get<PuckRepository>(),
-      ),
-      child: const CreateTeamView(),
-    );
-  }
-}
-
-class CreateTeamView extends StatelessWidget {
-  const CreateTeamView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,133 +27,166 @@ class CreateTeamView extends StatelessWidget {
   }
 }
 
-class _CreateTeamForm extends StatelessWidget {
+class _CreateTeamForm extends StatefulWidget {
   const _CreateTeamForm();
 
   @override
+  State<_CreateTeamForm> createState() => __CreateTeamFormState();
+}
+
+class __CreateTeamFormState extends State<_CreateTeamForm> {
+  final store = CreateTeamStore();
+  late ReactionDisposer disposer;
+
+  @override
+  void initState() {
+    super.initState();
+    store.setupReactions();
+    disposer = reaction((_) => store.viewState, (viewState) {
+      if (viewState is Failed) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                'Oops... ${(store.viewState as Failed).error}',
+              ),
+            ),
+          );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    disposer();
+    store.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocListener<CreateTeamBloc, CreateTeamState>(
-      listenWhen: (previous, current) => previous.status != current.status,
-      listener: (context, state) {
-        if (state.status == FormzSubmissionStatus.failure) {
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(SnackBar(content: Text('Oops: ${state.errorMsg}')));
-        } else if (state.status == FormzSubmissionStatus.success) {
-          // TODO: Go to next step in the flow
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(
-              const SnackBar(content: Text('Team created successfully! 🎉')),
-            );
-        }
-      },
-      child: const Column(
-        children: [
-          _LocationInput(),
-          _NicknameInput(),
-          _AbbreviationInput(),
-          SizedBox(height: 20.0),
-          Center(child: _SubmitButton()),
-        ],
+    return Form(
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Column(
+          children: [
+            _LocationInput(store: store),
+            _NicknameInput(store: store),
+            _AbbreviationInput(store: store),
+            const SizedBox(height: 20.0),
+            Row(
+              children: [
+                _SubmitButton(store: store),
+                const SizedBox(width: 20.0),
+                _LoadingIndicator(store: store),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _LocationInput extends StatelessWidget {
-  const _LocationInput();
+class _LoadingIndicator extends StatelessWidget {
+  const _LoadingIndicator({required this.store});
+
+  final CreateTeamStore store;
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<CreateTeamBloc, CreateTeamState>(
-      buildWhen: (previous, current) => previous.location != current.location,
-      builder: (context, state) {
-        return TextField(
-          keyboardType: TextInputType.name,
-          decoration: InputDecoration(
-            labelText: 'Location',
-            errorText: state.location.error?.message(),
-          ),
-          onChanged: (location) => context.read<CreateTeamBloc>().add(
-                TeamLocationEdited(location),
-              ),
-        );
-      },
-    );
-  }
-}
-
-class _NicknameInput extends StatelessWidget {
-  const _NicknameInput();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<CreateTeamBloc, CreateTeamState>(
-      buildWhen: (previous, current) => previous.nickname != current.nickname,
-      builder: (context, state) {
-        return TextField(
-          keyboardType: TextInputType.name,
-          decoration: InputDecoration(
-            labelText: 'Nickname',
-            errorText: state.nickname.error?.message(),
-          ),
-          onChanged: (nickname) => context.read<CreateTeamBloc>().add(
-                TeamNicknameEdited(nickname),
-              ),
-        );
-      },
-    );
-  }
-}
-
-class _AbbreviationInput extends StatelessWidget {
-  const _AbbreviationInput();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<CreateTeamBloc, CreateTeamState>(
-      buildWhen: (previous, current) =>
-          previous.abbreviation != current.abbreviation,
-      builder: (context, state) {
-        return TextField(
-          keyboardType: TextInputType.name,
-          decoration: InputDecoration(
-            labelText: 'Abbreviation',
-            hintText: 'Must be 3 letters',
-            errorText: state.abbreviation.error?.message(),
-          ),
-          onChanged: (abbrevation) => context.read<CreateTeamBloc>().add(
-                TeamAbbreviationEdited(abbrevation),
-              ),
-        );
+    return Observer(
+      builder: (_) => switch (store.viewState) {
+        Loading _ => const CircularProgressIndicator.adaptive(),
+        _ => const SizedBox.shrink(),
       },
     );
   }
 }
 
 class _SubmitButton extends StatelessWidget {
-  const _SubmitButton();
+  const _SubmitButton({
+    required this.store,
+  });
+
+  final CreateTeamStore store;
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<CreateTeamBloc, CreateTeamState>(
-      buildWhen: (previous, current) =>
-          previous.isFormValid != current.isFormValid ||
-          previous.status != current.status,
-      builder: (context, state) {
-        return FilledButton.icon(
-          onPressed: state.isFormValid &&
-                      state.status == FormzSubmissionStatus.initial ||
-                  state.status == FormzSubmissionStatus.failure
-              ? () => context
-                  .read<CreateTeamBloc>()
-                  .add(const CreateTeamRequested())
-              : null,
-          label: const Text('Submit'),
-          icon: const Icon(Icons.check),
-        );
-      },
+    return Observer(builder: (_) {
+      final isEnabled = store.isFormValid &&
+          (store.viewState is Idle || store.viewState is Failed);
+      return FilledButton(
+        onPressed: isEnabled ? store.submit : null,
+        child: const Text('Create team'),
+      );
+    });
+  }
+}
+
+class _AbbreviationInput extends StatelessWidget {
+  const _AbbreviationInput({
+    required this.store,
+  });
+
+  final CreateTeamStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    return Observer(
+      builder: (_) => TextField(
+        onChanged: (value) => store.abbreviation = value,
+        decoration: InputDecoration(
+          labelText: 'Abbreviation',
+          hintText: 'e.g. VAN',
+          errorText: store.formErrorState.abbreviation,
+        ),
+      ),
+    );
+  }
+}
+
+class _NicknameInput extends StatelessWidget {
+  const _NicknameInput({
+    required this.store,
+  });
+
+  final CreateTeamStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    return Observer(
+      builder: (_) => TextField(
+        onChanged: (value) => store.nickname = value,
+        decoration: InputDecoration(
+          labelText: 'Nickname',
+          hintText: 'e.g. Canucks',
+          errorText: store.formErrorState.nickname,
+        ),
+      ),
+    );
+  }
+}
+
+class _LocationInput extends StatelessWidget {
+  const _LocationInput({
+    required this.store,
+  });
+
+  final CreateTeamStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    return Observer(
+      builder: (_) => TextField(
+        onChanged: (value) => store.location = value,
+        decoration: InputDecoration(
+          labelText: 'Location',
+          hintText: 'e.g. Vancouver',
+          errorText: store.formErrorState.location,
+        ),
+      ),
     );
   }
 }
